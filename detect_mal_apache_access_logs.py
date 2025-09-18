@@ -1,0 +1,56 @@
+# Description: A python script that automates detection of nmap scanning and web directory enumeration in apache access logs.
+
+import argparse
+import json
+
+def analyze_apache_logs(input_file: str, http_response_code_threshold=0.5):
+    malicious_logs = []
+    http_response_ratios = {}
+    with open(input_file, 'r') as f:
+        logs = json.load(f)
+    # look for specific message types and count number of HTTP 200 response codes versus error codes
+    for log in logs:
+        if 'Nmap Scripting Engine' in log['user_agent']:
+            mal_data = {'category': 'NMAP Scanning', 'client_ip': log['client_ip'], 'datetime': log['datetime']}
+            malicious_logs.append(mal_data)
+        if log['client_ip'] not in http_response_ratios:
+            http_response_ratios[log['client_ip']] = {'200': 0, 'error': 0}
+        if log['response_code'] != '200':
+            http_response_ratios[log['client_ip']]['error'] += 1
+        else:
+            http_response_ratios[log['client_ip']]['200'] += 1
+        http_response_ratios[log['client_ip']]['datetime'] = log['datetime']
+    # process HTTP response code ratios and append to malicious logs if ratio is under given threshold
+    for k, v in http_response_ratios.items():
+        http_200 = v['200']
+        http_error = v['error']
+        total = http_200 + http_error
+        ratio = http_200 / total
+        if ratio < http_response_code_threshold:
+            v['ratio'] = ratio
+            v['category'] = 'Web Directory Enumeration'
+            tmp_dict = {'category': 'Web Directory Enumeration', 'client_ip': k, 'datetime': v['datetime']}
+            malicious_logs.append(tmp_dict)
+    return malicious_logs
+
+
+def main():
+    parser = argparse.ArgumentParser(description='This application analyzes parsed log files to find malicious activity.')
+    parser.add_argument('-i', '--input', required=True, help='Parsed log file (JSON format) to read from')
+    parser.add_argument('-o', '--output', help='Output file to write to')
+    args = parser.parse_args()
+
+    input_file = args.input
+    output = args.output
+
+    malicious_logs = analyze_apache_logs(input_file)
+
+    if output:
+        with open(output, 'w') as of:
+            json.dump(malicious_logs, of, indent=2)
+    else:
+        print(json.dumps(malicious_logs, indent=2))
+
+
+if __name__ == '__main__':
+    main()
