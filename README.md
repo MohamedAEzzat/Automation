@@ -1,6 +1,6 @@
 # Project Title
 
-Random automation scripts.
+Miscellaneous automation scripts.
 
 ## Description
 
