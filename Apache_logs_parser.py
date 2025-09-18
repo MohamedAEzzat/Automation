@@ -47,7 +47,7 @@ def parse_apache_logs(log_file):
 def main():
     parser = argparse.ArgumentParser(description='Apache log file parser application.')
     parser.add_argument('-i', '--input', required=True, help='Log file to read from')
-    parser.add_argument('-l', '--log-format', required=True, choices=['apache', 'apache_error'], help='Type of log to parse')
+    parser.add_argument('-l', '--log-format', required=True, choices=['access', 'error'], help='Type of log to parse')
     parser.add_argument('-o', '--output', help='Output file to write to')
     args = parser.parse_args()
 
